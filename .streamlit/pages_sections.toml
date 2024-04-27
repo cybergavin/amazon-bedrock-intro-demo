@@ -1,0 +1,54 @@
+[[pages]]
+path = "main.py"
+name = "Home"
+icon = "🏠"
+
+[[pages]]
+path = "scripts/qa_fm.py"
+name = "QA - Single FM 📙"
+icon = ":question:"
+
+[[pages]]
+path = "scripts/qa_fm_comparison.py"
+name = "QA - FM Comparison 📚"
+icon = ":question:"
+
+[[pages]]
+path = "scripts/chat_fm.py"
+name = "Chat - FMs"
+icon = ":robot_face:"
+
+[[pages]]
+path = "scripts/text_search.py"
+name = "Text Search"
+icon = ":mag_right:"
+
+[[pages]]
+path = "scripts/code_translation.py"
+name = "Code Translation"
+icon = ":abacus:"
+
+[[pages]]
+path = "scripts/rag_documents.py"
+name = "RAG - Document(s)"
+icon = ":file_folder:"
+
+[[pages]]
+path = "scripts/rag_bedrock_kb.py"
+name = "RAG - Bedrock KB"
+icon = ":bucket:"
+
+[[pages]]
+path = "scripts/rag_www.py"
+name = "RAG - WWW"
+icon = ":globe_with_meridians:"
+
+[[pages]]
+path = "scripts/solutions_overview.py"
+name = "Solutions Overview"
+icon = ":triangular_ruler:"
+
+[[pages]]
+path = "scripts/partyrock.py"
+name = "PartyRock"
+icon = ":minidisc:"
