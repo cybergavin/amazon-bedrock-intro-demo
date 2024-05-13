@@ -1,13 +1,12 @@
 import streamlit as st
 import os
+import asyncio
 from pathlib import Path, PurePath
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import DirectoryLoader
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
-from cg_utils import *
+from utils import *
 
 
 # Directories
@@ -23,7 +22,7 @@ if not os.path.exists(VECTOR_STORE_DIR):
 
 
 # Get text-to-text FMs
-t2t_fms = get_t2t_fms(fm_vendors)
+t2t_fms = list_bedrock_fm_ids(["TEXT"], ["TEXT"], ["ON_DEMAND"])
 
 
 def process_docs(in_dir:str, out_dir:str):
@@ -87,44 +86,46 @@ def empty_dir(data_dir:str):
         os.remove(os.path.join(data_dir, f))
       
 
-def ask_fm_rag_off(prompt:str, modelid:str):
+async def ask_fm_rag_off(prompt:str, modelid:str):
     """FM query - RAG disabled"""
     return ask_fm(modelid, prompt)
 
 
-def ask_fm_rag_on(prompt:str, modelid:str, vector_db):
+async def ask_fm_rag_on(prompt:str, modelid:str, vector_db):
     """FM contextual query - RAG enabled"""
-    prompt_template = """
-    Human: Use only the following context to provide a concise answer to the question at the end. 
+    global augmented_prompt
+    global top_k
+    top_k = 3
+    retriever = vector_db.as_retriever(search_kwargs={"k": top_k})
+    results = retriever.invoke(prompt)
+    result_text = []
+    unique_sources = set()
+    for document in results:
+        # Extract text content from the document
+        page_content = document.page_content.strip()
+        result_text.append(page_content)
+        # Extract source from the metadata
+        source = document.metadata.get('source', 'Unknown')
+        filename = source.split('/')[-1]
+        unique_sources.add(filename)
+    context = ' '.join(result_text)
+    unique_sources_list = list(unique_sources)
+    augmented_prompt = f"""
+    Use only the following context to provide a concise answer to the question at the end. Skip the preamble. Avoid mentioning the context.
     If you cannot find the answer in the context, just say that you don't know, don't try to make up an answer.
-
+    <context>
     {context}
+    </context>
 
-    Question: {question}
-    Assistant:
-    """             
-    PROMPT = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
-    )
-    qa = RetrievalQA.from_chain_type(
-        llm=get_fm(modelid),
-        chain_type="stuff",
-        retriever=vector_db.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 5}
-        ),
-        return_source_documents=True,
-        chain_type_kwargs={"prompt": PROMPT}
-    )
-    result = qa({"query": prompt})
-    if result['source_documents'] == []:
-        response = f"""{result['result']}"""
-    else:
-        response = f"""{result['result']}<br /><br /> <b>Source:</b> {PurePath(result['source_documents'][0].metadata['source']).name}"""
-    return response
+    <question>
+    {prompt}
+    </question>
+    """
+    response, in_tokens, out_tokens = ask_fm(modelid,augmented_prompt)
+    return response, in_tokens, out_tokens, unique_sources_list         
 
 
-def main():
+async def main():
     """Main function for RAG"""
     st.set_page_config(page_title="Retrieval Augmented Generation - Similarity Search", layout="wide")
     css = '''
@@ -187,7 +188,7 @@ def main():
                         st.error('Your question or instruction must contain at least 10 characters.', icon="🚨")
                     elif len(os.listdir(INPUT_DIR)) == 0 and len(os.listdir(VECTOR_STORE_DIR)) == 0:
                         st.session_state.faiss_vector_db = None
-                        st.error('There are no PDF documents for RAG. Pleasse upload at least one document.', icon="🚨")
+                        st.error('There are no PDF documents for RAG. Please upload at least one document.', icon="🚨")
                     elif len(os.listdir(INPUT_DIR)) == 0 and len(os.listdir(VECTOR_STORE_DIR)) > 0:
                         empty_dir(VECTOR_STORE_DIR)
                         st.session_state.faiss_vector_db = None
@@ -196,12 +197,31 @@ def main():
                         st.session_state.faiss_vector_db = embeddings_faiss(pdf_chunks,VECTOR_STORE_DIR, bedrock_embeddings)
                     elif len(os.listdir(INPUT_DIR)) > 0 and len(os.listdir(VECTOR_STORE_DIR)) > 0:
                         st.session_state.faiss_vector_db = embeddings_faiss([],VECTOR_STORE_DIR, bedrock_embeddings)
+                        tasks = []
+                        task1 = asyncio.create_task(ask_fm_rag_off(rag_fm_prompt, rag_fm))
+                        task2 = asyncio.create_task(ask_fm_rag_on(rag_fm_prompt, rag_fm, st.session_state.faiss_vector_db))
+                        tasks.extend([task1, task2])
+                        results = await asyncio.gather(*tasks)
                         with rag_disabled_response.container():
-                            st.markdown(f"<div id='divshell' style='background-color: #fdf1f2;'><p style='text-align: center;font-weight: bold;'>Without RAG ( {rag_fm} )</p>{ask_fm_rag_off(rag_fm_prompt, rag_fm)}</div>", unsafe_allow_html=True)
+                            response_rag_off, _in_tokens, _out_tokens = results[0]
+                            in_tokens = _in_tokens if _in_tokens is not None else "Not provided"
+                            out_tokens = _out_tokens if _out_tokens is not None else "Not provided"
+                            st.markdown(f"""<div id='divshell' style='background-color: #fdf1f2;'>
+                            <p style='text-align: center;font-weight: bold;'>Without RAG ( {rag_fm} )</p>
+                            {response_rag_off}</div>
+                            <b>Input Tokens:</b> {in_tokens} | <b>Output Tokens:</b> {out_tokens}""", unsafe_allow_html=True)
                         with rag_enabled_response.container():
-                            st.markdown(f"<div id='divshell' style='background-color: #f1fdf1;'><p style='text-align: center;font-weight: bold;'>With RAG ( {rag_fm} )</p>{ask_fm_rag_on(rag_fm_prompt, rag_fm, st.session_state.faiss_vector_db)}</div>", unsafe_allow_html=True)
+                            response, _in_tokens, _out_tokens, sources_list = results[1]
+                            in_tokens = _in_tokens if _in_tokens is not None else "Not provided"
+                            out_tokens = _out_tokens if _out_tokens is not None else "Not provided"
+                            cs_sources = "\n".join([f"({i+1}) {item}" for i, item in enumerate(sources_list)])
+                            st.markdown(f"""<div id='divshell' style='background-color: #f1fdf1;'><p style='text-align: center;font-weight: bold;'>With RAG ( {rag_fm} )</p>
+                            {response}<br /><b>Source(s): </b>\n{cs_sources}</div>
+                            <b>Input Tokens:</b> {in_tokens} | <b>Output Tokens:</b> {out_tokens}<br /><br />""", unsafe_allow_html=True)
+                            expander = st.expander(f"See augmented prompt with top {top_k} search results from source(s) ({in_tokens} tokens)")
+                            expander.write(augmented_prompt)
 
 
 # Main  
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -2,7 +2,6 @@ import boto3
 import pandas as pd
 import numpy as np
 import json
-from langchain.llms.bedrock import Bedrock
 from langchain.embeddings import BedrockEmbeddings
 
 # Create bedrock boto3 clients
@@ -98,69 +97,82 @@ def generate_bedrock_fm_table():
     
 def ask_fm(modelid:str, prompt:str) -> str:
     """Invoke specific FM using boto3 and pass prompt and max tokens - all other inference parameters will use default values"""
-    if "ai21.j2" in modelid:
-        body = json.dumps({
-            "prompt": prompt,
-            "maxTokens": 2048})
-    elif "anthropic.claude" in modelid:
-        body = json.dumps({
-            "prompt": f"\n\nHuman:{prompt}\n\nAssistant:",
-            "max_tokens_to_sample": 2048})
-    elif "cohere" in modelid:
-        body = json.dumps({
-            "prompt": prompt,
-            "max_tokens": 2048})
-    elif "meta" in modelid:
-        body = json.dumps({
-            "prompt": prompt,
-            "max_gen_len": 2048})
-    elif "amazon" in modelid:
-        body = json.dumps({
-            "inputText": prompt,
-            "textGenerationConfig": {
-                "maxTokenCount": 2048
-            }})
+    unsupported = False
     accept = "application/json"
     contentType = "application/json"
-    # Invoke FM
-    response = bedrock_runtime.invoke_model(
-        body=body, modelId=modelid, accept=accept, contentType=contentType
+    if "ai21.j2" in modelid:
+        body = json.dumps(
+            {
+                "prompt": prompt,
+                "maxTokens": 1024
+            }
         )
-    # Parse and print output
-    response_body = json.loads(response["body"].read())
-    if "ai21.j2" in modelid:
-        return response_body["completions"][0]["data"]["text"]
     elif "anthropic.claude" in modelid:
-        return response_body["completion"]
-    elif "cohere" in modelid:
-        return response_body["generations"][0]["text"]
+        body=json.dumps(
+            {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": f"{prompt}"}]
+            }
+        )
+    elif "cohere.command-r" in modelid:
+        body = json.dumps(
+            {
+                "message": prompt,
+                "max_tokens": 1024
+            }
+        )
+    elif "cohere.command-text" in modelid or "cohere.command-light" in modelid:
+        body = json.dumps(
+            {
+                "prompt": prompt,
+                "max_tokens": 1024
+            }
+        )
     elif "meta" in modelid:
-        return response_body["generation"]
+        body = json.dumps(
+            {
+                "prompt": prompt,
+                "max_gen_len": 1024
+            }
+        )
+    elif "mistral" in modelid:
+        body = json.dumps(
+            {
+                "prompt": f"""<s>[INST] {prompt} [/INST]""",
+                "max_tokens": 1024
+            }
+        )            
     elif "amazon" in modelid:
-        return response_body["results"][0]["outputText"]
+        body = json.dumps(
+            {
+                "inputText": prompt,
+                "textGenerationConfig": {
+                    "maxTokenCount": 1024
+                    }
+            }
+        )
+    else:
+        unsupported = True
     
-
-def get_fm(modelid:str):
-    """Return requested Bedrock FM (LangChain) with 2048 max tokens in output"""
-    if "ai21.j2" in modelid:
-        inference_parameters = {
-            "maxTokens": 2048
-        }
-    elif "anthropic.claude" in modelid:
-        inference_parameters = {
-            "max_tokens_to_sample": 2048,
-            "temperature": 0
-        }
-    elif "cohere" in modelid:
-        inference_parameters = {
-            "max_tokens": 2048
-        }
-    elif "meta" in modelid:
-        inference_parameters = {
-            "max_gen_len": 2048
-        }
-    elif "amazon" in modelid:
-        inference_parameters = {
-            "maxTokenCount": 2048
-        }                
-    return Bedrock(model_id=modelid, client=bedrock_runtime, model_kwargs=inference_parameters)
+    if unsupported:
+        return f"Unsupported model. This application's code must be modified for inferencing with {modelid}", None, None
+    else:
+        # Invoke FM
+        response = bedrock_runtime.invoke_model(body=body, modelId=modelid, accept=accept, contentType=contentType)
+        # Parse and print output
+        response_body = json.loads(response["body"].read())
+        if "ai21.j2" in modelid:
+            return response_body["completions"][0]["data"]["text"], None, None
+        elif "anthropic.claude" in modelid:
+            return response_body['content'][0]['text'], response_body['usage']['input_tokens'], response_body['usage']['output_tokens']
+        elif "cohere.command-r-" in modelid:
+            return response_body["text"], None, None
+        elif "cohere.command-text" in modelid or "cohere.command-light" in modelid:
+            return response_body['generations'][0]['text'], None, None
+        elif "meta" in modelid:
+            return response_body["generation"], response_body['prompt_token_count'], response_body['generation_token_count']
+        elif "amazon" in modelid:
+            return response_body["results"][0]["outputText"], response_body["inputTextTokenCount"], response_body["results"][0]["tokenCount"]
+        elif "mistral" in modelid:
+            return response_body['outputs'][0]['text'], None, None

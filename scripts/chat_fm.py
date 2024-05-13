@@ -3,11 +3,11 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from cg_utils import *
+from utils import *
 
 
 # Get text-to-text FMs
-t2t_fms = get_t2t_fms(fm_vendors)
+t2t_fms = list_bedrock_fm_ids(["TEXT"], ["TEXT"], ["ON_DEMAND"])
 
 
 def fm_chat(modelid:str):

@@ -1,6 +1,7 @@
 import streamlit as st
-from cg_utils import *
+from utils import *
 import time
+import asyncio
 
 
 # Create boto3 clients
@@ -10,7 +11,7 @@ s3 = boto3.client(service_name='s3')
 
 
 # Get text-to-text FMs
-t2t_fms = get_t2t_fms(fm_vendors)
+t2t_fms = list_bedrock_fm_ids(["TEXT"], ["TEXT"], ["ON_DEMAND"])
 
 
 def sync_kb(kb_id:str, ds_id:str):
@@ -37,13 +38,16 @@ def upload_docs(docs:list, bucket:str):
         s3.upload_fileobj(doc, bucket, doc.name)
   
 
-def ask_fm_rag_off(prompt:str, modelid:str):
+async def ask_fm_rag_off(prompt:str, modelid:str):
     """FM query - RAG disabled"""
     return ask_fm(modelid, prompt)
 
 
-def ask_fm_rag_on(prompt:str, modelid:str, kb_id:str):
+async def ask_fm_rag_on(prompt:str, modelid:str, kb_id:str):
     """FM contextual query - RAG enabled, powered by Bedrock's knowledge base"""
+    global augmented_prompt
+    global top_k
+    top_k = 3
     kb_response = bedrock_agent_runtime.retrieve(
         knowledgeBaseId=kb_id,
         retrievalQuery={
@@ -51,24 +55,32 @@ def ask_fm_rag_on(prompt:str, modelid:str, kb_id:str):
         },
     retrievalConfiguration={
         'vectorSearchConfiguration': {
-            'numberOfResults': 1
+            'numberOfResults': top_k
         }}
     )
-    context = kb_response["retrievalResults"][0]["content"]["text"]
-    source = kb_response["retrievalResults"][0]["location"]["s3Location"]["uri"]
-    augmented_prompt = f"""Use the following context to provide a concise answer to the question below. If you cannot find the answer, just say that you don't know.
-    Do not provide your reasoning for the answer.
+    result_text = []
+    unique_sources = set()
+    for r in kb_response["retrievalResults"]:
+        result_text.append(r["content"]["text"])
+        unique_sources.add(r["location"]["s3Location"]["uri"])
+    context = ' '.join(result_text)
+    unique_sources_list = list(unique_sources)
+    augmented_prompt = f"""
+    Use only the following context to provide a concise answer to the question at the end. Skip the preamble and avoid mentioning the context.
+    If you cannot find the answer in the context, just say that you don't know, don't try to make up an answer.
+    <context>
+    {context}
+    </context>
 
-     Context: {context}
-
-     Question: {prompt}
-    
+    <question>
+    {prompt}
+    </question>
     """
-    response = ask_fm(modelid, augmented_prompt)
-    return f"""{response}<br /><br /> <b>Source:</b> {source.split('/')[-1]}"""
+    response, in_tokens, out_tokens = ask_fm(modelid,augmented_prompt)
+    return response, in_tokens, out_tokens, unique_sources_list
 
 
-def main():
+async def main():
     """Main function for RAG"""
     st.set_page_config(page_title="Retrieval Augmented Generation - Similarity Search", layout="wide")
     css = '''
@@ -124,12 +136,31 @@ def main():
                 with rag_fm_prompt_validation.container():
                     if len(rag_fm_prompt) < 10:
                         st.error('Your question or instruction must contain at least 10 characters.', icon="🚨")
+                tasks = []
+                task1 = asyncio.create_task(ask_fm_rag_off(rag_fm_prompt, rag_fm))
+                task2 = asyncio.create_task(ask_fm_rag_on(rag_fm_prompt, rag_fm, st.session_state.rag_kb_key))
+                tasks.extend([task1, task2])
+                results = await asyncio.gather(*tasks)
                 with rag_disabled_response.container():
-                    st.markdown(f"<div id='divshell' style='background-color: #fdf1f2;'><p style='text-align: center;font-weight: bold;'>Without RAG ( {rag_fm} )</p>{ask_fm_rag_off(rag_fm_prompt, rag_fm)}</div>", unsafe_allow_html=True)
+                    response_rag_off, _in_tokens, _out_tokens = results[0]
+                    in_tokens = _in_tokens if _in_tokens is not None else "Not provided"
+                    out_tokens = _out_tokens if _out_tokens is not None else "Not provided"
+                    st.markdown(f"""<div id='divshell' style='background-color: #fdf1f2;'>
+                    <p style='text-align: center;font-weight: bold;'>Without RAG ( {rag_fm} )</p>
+                    {response_rag_off}</div>
+                    <b>Input Tokens:</b> {in_tokens} | <b>Output Tokens:</b> {out_tokens}""", unsafe_allow_html=True)
                 with rag_enabled_response.container():
-                    st.markdown(f"<div id='divshell' style='background-color: #f1fdf1;'><p style='text-align: center;font-weight: bold;'>With RAG ( {rag_fm} )</p>{ask_fm_rag_on(rag_fm_prompt, rag_fm, st.session_state.rag_kb_key)}</div>", unsafe_allow_html=True)
+                    response, _in_tokens, _out_tokens, sources_list = results[1]
+                    in_tokens = _in_tokens if _in_tokens is not None else "Not provided"
+                    out_tokens = _out_tokens if _out_tokens is not None else "Not provided"
+                    cs_sources = "\n".join([f"({i+1}) {item}" for i, item in enumerate(sources_list)])
+                    st.markdown(f"""<div id='divshell' style='background-color: #f1fdf1;'><p style='text-align: center;font-weight: bold;'>With RAG ( {rag_fm} )</p>
+                    {response}<br /><b>Source(s): </b>\n{cs_sources}</div>
+                    <b>Input Tokens:</b> {in_tokens} | <b>Output Tokens:</b> {out_tokens}<br /><br />""", unsafe_allow_html=True)
+                    expander = st.expander(f"See augmented prompt with top {top_k} search results from source(s) ({in_tokens} tokens)")
+                    expander.write(augmented_prompt)
 
 
 # Main  
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

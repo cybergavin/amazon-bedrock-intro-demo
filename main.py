@@ -21,12 +21,12 @@ st.write("# Amazon Bedrock - Introductory Demo 👋")
 st.markdown(
     """
     Amazon Bedrock is a **fully managed** service that offers **API access** to a choice of high-performing **foundation models** (FMs) from leading AI companies
-      including AI21 Labs, Anthropic, Cohere, Meta, Stability AI, and Amazon, along with a broad set of capabilities 
+      including AI21 Labs, Anthropic, Cohere, Meta, Stability AI, Mistral and Amazon, along with a broad set of capabilities 
       that you need to **build** generative AI (GenAI) applications, **simplifying** development while maintaining **privacy** and **security**. 
 
-    This demo application provides a basic introduction to some GenAI use cases by allowing you to interact with FMs via Amazon Bedrock. 
+    This demo application provides a basic introduction to GenAI by allowing you to interact with FMs hosted on Amazon Bedrock, without requiring access to the AWS Management Console. 
 
-    **👈 Select a demo from the sidebar** to explore some interactions with Amazon Bedrock!
+    **👈 Select a quick link from the sidebar** to explore some interactions with Amazon Bedrock!
   
     ### Want to learn more?
     - Check out [Amazon Bedrock](https://aws.amazon.com/bedrock/)

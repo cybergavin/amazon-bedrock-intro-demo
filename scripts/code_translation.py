@@ -1,15 +1,15 @@
 import streamlit as st
-from cg_utils import *
+from utils import *
 
 
 # Get text-to-text FMs
-t2t_fms = get_t2t_fms(fm_vendors)
+t2t_fms = list_bedrock_fm_ids(["TEXT"], ["TEXT"], ["ON_DEMAND"])
 # Programming languages for code translation
-pr_langs = ["C++", "Java", "JavaScript", "Python", "COBOL", "Go"]
+pr_langs = ["C++", "Java", "JavaScript", "Python", "COBOL", "Go", "Rust"]
 # Construct promt template for code translation
 prompt_template = """
 You are an expert software developer in {tgt_lang}. 
-You will translate the code below from to {tgt_lang} while following coding best practices and accurate syntax.
+You will translate the code below to {tgt_lang} while following coding best practices and accurate syntax.
 <code>
 {code}
 </code>
@@ -63,11 +63,11 @@ def main():
                     st.error('Your question must contain at least 50 characters.', icon="🚨")
             else:
                 prompt = prompt_template.format(code=st.session_state.src_lang_code_key, tgt_lang=st.session_state.tgt_lang_key)
-                tgt_code = f"<div id='divshell'>{ask_fm(st.session_state.fm_key,prompt)}</div>"
+                response, in_tokens, out_tokens = ask_fm(st.session_state.fm_key, prompt)
+                tgt_code = f"<div id='divshell'>{response}</div>"
     with col2:
         src_lang_code = st.text_area("Enter code to be translated in the text area below:",key="src_lang_code_key")
     with col3:
-        # st.markdown("<br /><br />", unsafe_allow_html=True)
         st.markdown(tgt_code, unsafe_allow_html=True)
 
 

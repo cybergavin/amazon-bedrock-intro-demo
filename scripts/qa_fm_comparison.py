@@ -1,11 +1,17 @@
 import streamlit as st
-from cg_utils import *
+import asyncio
+from utils import *
 
 # Get text-to-text FMs
-t2t_fms = get_t2t_fms(fm_vendors)
+t2t_fms = list_bedrock_fm_ids(["TEXT"], ["TEXT"], ["ON_DEMAND"])
 
 
-def main():
+async def get_fm_response(model_id, prompt):
+    """Async wrapper to get response from a foundation model"""
+    return ask_fm(model_id, prompt)
+
+
+async def main():
     """Main function for app"""
     st.set_page_config(page_title="fm QA Comparison", layout="wide")
     css = '''
@@ -44,11 +50,28 @@ def main():
                 with fm_prompt_validation.container():
                     st.error('Your question must contain at least 10 characters.', icon="🚨")
             else:
+                prompt = st.session_state.fm_compare_prompt_key
+                model_ids = [st.session_state.fm_1_key, st.session_state.fm_2_key]
+                tasks = []
+                # Start a task for each model ID
+                for model_id in model_ids:
+                    task = asyncio.create_task(get_fm_response(model_id, prompt))
+                    tasks.append(task)
+                # Wait for all tasks to complete
+                results = await asyncio.gather(*tasks)
                 with fm_1_output.container():
-                    st.markdown(f"<div id='divshell'>{ask_fm(st.session_state.fm_1_key,st.session_state.fm_compare_prompt_key)}</div>", unsafe_allow_html=True)
+                    response1, _in_tokens1, _out_tokens1 = results[0]
+                    in_tokens1 = _in_tokens1 if _in_tokens1 is not None else "Not provided"
+                    out_tokens1 = _out_tokens1 if _out_tokens1 is not None else "Not provided"
+                    st.markdown(f"""<div id='divshell'>{response1}</div>
+                    <b>Input Tokens:</b> {in_tokens1} | <b>Output Tokens:</b> {out_tokens1}""", unsafe_allow_html=True)
                 with fm_2_output.container():
-                    st.markdown(f"<div id='divshell'>{ask_fm(st.session_state.fm_2_key,st.session_state.fm_compare_prompt_key)}</div>", unsafe_allow_html=True)
+                    response2, _in_tokens2, _out_tokens2 = results[1]
+                    in_tokens2 = _in_tokens2 if _in_tokens2 is not None else "Not provided"
+                    out_tokens2 = _out_tokens2 if _out_tokens2 is not None else "Not provided"
+                    st.markdown(f"""<div id='divshell'>{response2}</div>
+                    <b>Input Tokens:</b> {in_tokens2} | <b>Output Tokens:</b> {out_tokens2}""", unsafe_allow_html=True)
 
 # Main  
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
