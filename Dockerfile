@@ -1,4 +1,4 @@
-ARG pyver
+ARG pyver=3.9
 # Use Python base image
 FROM python:${pyver}
 ARG listen_port
