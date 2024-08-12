@@ -28,16 +28,15 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PAT }}      
+        password: ${{ secrets.GHCR_PAT }}
 
     - name: Build and Push Docker image
       run: |
         docker buildx build \
-          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
           --build-arg pyver=${{ env.PYTHON_VERSION }} \
           --build-arg listen_port=${{ env.LISTEN_PORT }} \
-          --no-cache .
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
+          --push .
+        
     - name: Log out from GitHub Container Registry
       run: docker logout ghcr.io
