@@ -51,4 +51,3 @@ pip install -r requirements.txt
 ```
 streamlit run main.py
 ```
- **NOTE:** This demo will be updated soon
