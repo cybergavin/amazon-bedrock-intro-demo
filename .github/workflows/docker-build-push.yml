@@ -21,8 +21,8 @@ jobs:
 
     - name: Build and Push Docker image
       run: |
-        docker build -t ghcr.io/${{ github.actor }}/${{ github.repository }}/:latest .
-        docker push ghcr.io/${{ github.actor }}/${{ github.repository }}/:latest
+        docker build -t ghcr.io/${{ github.actor }}/${{ github.repository }}:latest .
+        docker push ghcr.io/${{ github.actor }}/${{ github.repository }}:latest
 
     - name: Log out from GitHub Container Registry
       run: docker logout ghcr.io
