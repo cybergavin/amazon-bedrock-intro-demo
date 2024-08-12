@@ -34,8 +34,8 @@ jobs:
       run: |
         docker buildx build \
           -t $REGISTRY/$IMAGE_NAME:$VERSION \
-          --build-arg pyver=${PYTHON_VERSION} \
-          --build-arg listen_port=${LISTEN_PORT} \
+          --build-arg pyver=$PYTHON_VERSION \
+          --build-arg listen_port=$LISTEN_PORT \
           --no-cache .
         docker push $REGISTRY/$IMAGE_NAME:$VERSION
 
