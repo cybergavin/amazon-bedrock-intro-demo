@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.actor }}/${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}
   VERSION: latest
   PYTHON_VERSION: 3.9
   LISTEN_PORT: 8501
@@ -33,11 +33,11 @@ jobs:
     - name: Build and Push Docker image
       run: |
         docker buildx build \
-          -t $REGISTRY/$IMAGE_NAME:$VERSION \
-          --build-arg pyver=$PYTHON_VERSION \
-          --build-arg listen_port=$LISTEN_PORT \
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
+          --build-arg pyver=${{ env.PYTHON_VERSION }} \
+          --build-arg listen_port=${{ env.LISTEN_PORT }} \
           --no-cache .
-        docker push $REGISTRY/$IMAGE_NAME:$VERSION
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
 
     - name: Log out from GitHub Container Registry
       run: docker logout ghcr.io
