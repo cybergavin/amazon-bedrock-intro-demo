@@ -3,6 +3,9 @@ ARG pyver=3.9
 FROM python:${pyver}
 ARG listen_port
 
+# Link GHCR container to this repo
+LABEL org.opencontainers.image.source https://github.com/cybergavin/amazon-bedrock-intro-demo
+
 # Install required software for deployment and troubleshooting
 RUN apt-get update && apt-get install -y \
 	netcat-traditional \

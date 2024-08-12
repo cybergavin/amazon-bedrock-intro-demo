@@ -36,16 +36,7 @@ jobs:
           --build-arg pyver=${{ env.PYTHON_VERSION }} \
           --build-arg listen_port=${{ env.LISTEN_PORT }} \
           -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
-          --push .
-
-    - name: Make Docker image public
-      run: |
-        curl -X PATCH \
-          -H "Authorization: token ${{ secrets.GHCR_PAT }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Content-Type: application/json" \
-          -d '{"visibility":"public"}' \
-          https://api.github.com/user/packages/container/${{ env.IMAGE_NAME }}/versions/${{ env.VERSION }}/visibility          
+          --push .     
         
     - name: Log out from GitHub Container Registry
       run: docker logout ghcr.io
