@@ -17,7 +17,6 @@ https://github.com/cybergavin/amazon-bedrock-intro-demo/assets/39437216/af57fbba
 - AWS account (sandbox account recommended)
 - IAM user or role with Administrator access or the [required permissions](https://docs.aws.amazon.com/bedrock/latest/userguide/security_iam_id-based-policy-examples.html) to access Amazon Bedrock and its FMs. Configure this principal's credentials in your environment's [default AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) (AWS_PROFILE). Also, ensure that you have enabled [Model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) on Amazon Bedrock.
 - Python 3.9+
-- Linux (preferred)
 - Internet access
 
 ## Getting started
@@ -62,7 +61,17 @@ cd amazon-bedrock-intro-demo
 pip install -r requirements.txt
 ```
 
-**STEP 4:** Launch the Streamlit application and access the displayed URL
+**STEP 4:** Set up AWS evironment for access to AWS
+
+Set environment variables (using `export` in Linux/Unix or `set` in Windows) for access to AWS.
+
+```
+export AWS_ACCESS_KEY_ID=<access key ID>
+export AWS_SECRET_ACCESS_KEY=<secret access key>
+export AWS_DEFAULT_REGION=<region>
+```
+
+**STEP 5:** Launch the Streamlit application and access the displayed URL
 
 ```
 streamlit run main.py
