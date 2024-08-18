@@ -1,6 +1,6 @@
 # Use Python base image
 FROM python:3.9
-ARG listen_port
+ENV LISTEN_PORT=8501
 
 # Link GHCR container to this repo
 LABEL "org.opencontainers.image.source"="https://github.com/cybergavin/amazon-bedrock-intro-demo"
@@ -15,7 +15,7 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose LISTEN port for the Streamlit UI
-EXPOSE $listen_port 
+EXPOSE $LISTEN_PORT
 
-CMD [ "--server.port", "$listen_port" ]
+CMD [ "--server.port", "$LISTEN_PORT" ]
 ENTRYPOINT [ "streamlit", "run", "/app/main.py" ]

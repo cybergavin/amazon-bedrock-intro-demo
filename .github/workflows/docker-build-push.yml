@@ -13,8 +13,6 @@ jobs:
         REGISTRY: ghcr.io
         IMAGE_NAME: ${{ github.repository }}
         VERSION: latest
-        PYTHON_VERSION: 3.9
-        LISTEN_PORT: 8501
         
     steps:
     - name: Checkout repository
@@ -33,8 +31,6 @@ jobs:
     - name: Build and Push Docker image
       run: |
         docker buildx build \
-          --build-arg pyver=${{ env.PYTHON_VERSION }} \
-          --build-arg listen_port=${{ env.LISTEN_PORT }} \
           -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
           --push .     
         
