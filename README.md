@@ -24,19 +24,20 @@ https://github.com/cybergavin/amazon-bedrock-intro-demo/assets/39437216/af57fbba
 
 You may launch this application via any of the following methods:
 
-### Run a container (Single-Step, quick launch)
+### METHOD 1: Run a container (Single-Step, quick launch)
 
 ```
 docker run \
         -e AWS_ACCESS_KEY_ID=<access key ID> \
         -e AWS_SECRET_ACCESS_KEY=<secret access key> \
+        -e AWS_DEFAULT_REGION=<region>
         -p <host_port>:8501 \
          ghcr.io/cybergavin/amazon-bedrock-intro-demo:latest
 ```
 
 ---
 
-### Set up and run (Multi-Step, more time to launch)
+### METHOD 2: Set up and run (Multi-Step, more time to launch)
 
 **STEP 1:** Create a Python virtual environment. This is *optional* depending on your environment. 
 
