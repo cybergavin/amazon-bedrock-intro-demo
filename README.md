@@ -71,6 +71,8 @@ export AWS_SECRET_ACCESS_KEY=<secret access key>
 export AWS_DEFAULT_REGION=<region>
 ```
 
+**NOTE:** Alternatively, if you have AWS CLI installed, you could set the AWS_PROFILE environment variable or use the recommended AWS SSO authentication with AWS IAM Identity Center.
+
 **STEP 5:** Launch the Streamlit application and access the displayed URL
 
 ```
