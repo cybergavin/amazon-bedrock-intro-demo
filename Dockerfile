@@ -9,8 +9,8 @@ FROM python:${PYTHON_VERSION}-slim AS build
 WORKDIR /app
 
 # Keep the container filesystem clean and optimize real-time logging
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install a C compiler and build tools for any package dependencies (C extensions)
 RUN apt-get update && \
@@ -41,9 +41,6 @@ RUN pip install --no-cache /wheels/*
 
 # Expose LISTEN port for the Streamlit UI
 EXPOSE 8501
-
-# Check if streamlit application is ok and listening at port 8501
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
 # Default entrypoint to launch streamlit application when the container is started
 ENTRYPOINT [ "streamlit", "run", "/app/main.py", "--server.port=8501", "--server.address=0.0.0.0" ]
