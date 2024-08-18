@@ -1,4 +1,4 @@
-## Amazon Bedrock - Introductory Demo
+# Amazon Bedrock - Introductory Demo
 
 Amazon Bedrock is a **fully managed** service that offers **API access** to a choice of high-performing **foundation models** (FMs) from leading AI companies
 including AI21 Labs, Anthropic, Cohere, Meta, Stability AI, and Amazon, along with a broad set of capabilities that you need to build generative AI applications, **simplifying** development while maintaining **privacy** and **security**. 
@@ -13,30 +13,30 @@ https://github.com/cybergavin/amazon-bedrock-intro-demo/assets/39437216/af57fbba
 
 **NOTE:** Refer to the [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) to understand the costs incurred with using Amazon Bedrock.
 
-### Prerequisites
+## Prerequisites
 - AWS account (sandbox account recommended)
 - IAM user or role with Administrator access or the [required permissions](https://docs.aws.amazon.com/bedrock/latest/userguide/security_iam_id-based-policy-examples.html) to access Amazon Bedrock and its FMs. Configure this principal's credentials in your environment's [default AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) (AWS_PROFILE). Also, ensure that you have enabled [Model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) on Amazon Bedrock.
 - Python 3.9+
 - Linux (preferred)
 - Internet access
 
-### Getting started
+## Getting started
 
 You may launch this application via any of the following methods:
 
-#### Run a container (Single-Step, quick launch)
+### Run a container (Single-Step, quick launch)
 
 ```
 docker run \
         -e AWS_ACCESS_KEY_ID=<access key ID> \
         -e AWS_SECRET_ACCESS_KEY=<secret access key> \
-        -e LISTEN_PORT=<listen port for application> \
+        -p <host_port>:8501 \
          ghcr.io/cybergavin/amazon-bedrock-intro-demo:latest
 ```
 
-**NOTE:** The LISTEN_PORT environment variable is optional. The default LISTEN_PORT is 8501.
+---
 
-#### Set up and run (Multi-Step, more time to launch)
+### Set up and run (Multi-Step, more time to launch)
 
 **STEP 1:** Create a Python virtual environment. This is *optional* depending on your environment. 
 
