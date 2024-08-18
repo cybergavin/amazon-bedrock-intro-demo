@@ -1,6 +1,7 @@
 # Set python version
 ARG PYTHON_VERSION=3.9
 
+##########################################################################################
 # Build stage
 FROM python:${PYTHON_VERSION}-slim AS build
 
@@ -41,5 +42,8 @@ RUN pip install --no-cache /wheels/*
 # Expose LISTEN port for the Streamlit UI
 EXPOSE 8501
 
-# Default command to launch streamlit application when the container is started
-CMD [ "streamlit", "run", "/app/main.py" ]
+# Check if streamlit application is ok and listening at port 8501
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
+# Default entrypoint to launch streamlit application when the container is started
+ENTRYPOINT [ "streamlit", "run", "/app/main.py", "--server.port=8501", "--server.address=0.0.0.0" ]
